@@ -1,6 +1,12 @@
-# San Jose Map Poster Generator
+# Map Poster Generator
 
-Generate beautiful minimalist map posters of San Jose, California with a tech-inspired dark + cyan aesthetic that honors Silicon Valley's identity.
+Generate beautiful minimalist map posters of any city with a tech-inspired dark + cyan aesthetic.
+
+## Examples
+
+| San Jose, CA | Hesperia, CA |
+|:---:|:---:|
+| ![San Jose](sanjose_poster.png) | ![Hesperia](hesperia_poster.png) |
 
 ## Design
 
@@ -11,14 +17,14 @@ Generate beautiful minimalist map posters of San Jose, California with a tech-in
 - Muted sage parks (#1e3a2f)
 - Clean typography
 
-The design echoes the circuit-board aesthetic of Silicon Valley while creating a striking, frameable piece of art.
+The design echoes a circuit-board aesthetic while creating a striking, frameable piece of art.
 
 ## Installation
 
 ```bash
 # Clone the repo
-git clone https://github.com/neildharrington/sanjose-map-poster.git
-cd sanjose-map-poster
+git clone https://github.com/neildharrington/map-poster.git
+cd map-poster
 
 # Create virtual environment
 python -m venv venv
@@ -31,25 +37,28 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-# Generate default San Jose poster
-python generate_poster.py
+# Generate a poster for any city
+python generate_poster.py "San Francisco, California, USA"
 
-# Custom radius (in km)
-python generate_poster.py --radius 20
+# Specify radius and resolution
+python generate_poster.py "Tokyo, Japan" --radius 30 --dpi 300
+
+# Custom labels
+python generate_poster.py "NYC, USA" --label "New York" --region "New York"
 
 # Custom output filename
-python generate_poster.py --output my_poster.png
-
-# High resolution (300 DPI)
-python generate_poster.py --dpi 300
+python generate_poster.py "Paris, France" --output paris.png
 ```
 
 ## Options
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `--radius` | 25 | Radius in kilometers from city center |
-| `--output` | `sanjose_poster.png` | Output filename |
+| `city` | (required) | City name with state/country for accuracy |
+| `--label` | auto | City name shown on poster |
+| `--region` | auto | State/country shown at top |
+| `--radius` | 20 | Radius in kilometers from city center |
+| `--output` | `<city>_poster.png` | Output filename |
 | `--dpi` | 150 | Resolution (use 300 for print quality) |
 | `--no-labels` | False | Omit city name text |
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a minimalist map poster of San Jose with tech-inspired aesthetics."""
+"""Generate minimalist map posters of any city with tech-inspired aesthetics."""
 
 import argparse
 import osmnx as ox
@@ -33,9 +33,6 @@ THEME = {
     'text_shadow': '#1b4965'
 }
 
-# San Jose coordinates
-SAN_JOSE = (37.3382, -121.8863)
-
 
 def get_road_style(highway_type):
     """Get color and width for a road type."""
@@ -46,6 +43,17 @@ def get_road_style(highway_type):
     width = THEME['road_widths'].get(highway_type, THEME['road_widths']['default'])
 
     return color, width
+
+
+def geocode_city(city_name):
+    """Geocode a city name to coordinates."""
+    print(f"Geocoding '{city_name}'...")
+    try:
+        location = ox.geocode(city_name)
+        print(f"  Found: {location[0]:.4f}, {location[1]:.4f}")
+        return location
+    except Exception as e:
+        raise ValueError(f"Could not find location: {city_name}") from e
 
 
 def fetch_map_data(center, radius_km):
@@ -81,7 +89,7 @@ def fetch_map_data(center, radius_km):
     return G, water, parks
 
 
-def render_poster(G, water, parks, output_path, dpi, show_labels=True):
+def render_poster(G, water, parks, output_path, dpi, city_name, state_or_country, coords, show_labels=True):
     """Render the map poster."""
     print("Rendering poster...")
 
@@ -149,7 +157,7 @@ def render_poster(G, water, parks, output_path, dpi, show_labels=True):
         ax.text(
             (xlim[0] + xlim[1]) / 2,
             ylim[0] + (ylim[1] - ylim[0]) * 0.06,
-            'SAN JOSE',
+            city_name.upper(),
             fontsize=72,
             fontweight='bold',
             color=THEME['text'],
@@ -159,7 +167,9 @@ def render_poster(G, water, parks, output_path, dpi, show_labels=True):
         )
 
         # Coordinates - smaller, below city name
-        coord_text = f"{SAN_JOSE[0]:.4f}°N  {abs(SAN_JOSE[1]):.4f}°W"
+        lat_dir = 'N' if coords[0] >= 0 else 'S'
+        lon_dir = 'W' if coords[1] < 0 else 'E'
+        coord_text = f"{abs(coords[0]):.4f}°{lat_dir}  {abs(coords[1]):.4f}°{lon_dir}"
         ax.text(
             (xlim[0] + xlim[1]) / 2,
             ylim[0] + (ylim[1] - ylim[0]) * 0.03,
@@ -172,11 +182,11 @@ def render_poster(G, water, parks, output_path, dpi, show_labels=True):
             alpha=0.7
         )
 
-        # "CALIFORNIA" - top
+        # State/Country - top
         ax.text(
             (xlim[0] + xlim[1]) / 2,
             ylim[1] - (ylim[1] - ylim[0]) * 0.03,
-            'CALIFORNIA',
+            state_or_country.upper(),
             fontsize=28,
             color=THEME['text'],
             ha='center',
@@ -205,15 +215,27 @@ def render_poster(G, water, parks, output_path, dpi, show_labels=True):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Generate a minimalist map poster of San Jose'
+        description='Generate minimalist map posters of any city'
     )
     parser.add_argument(
-        '--radius', type=int, default=25,
-        help='Radius in kilometers from city center (default: 25)'
+        'city',
+        help='City name (e.g., "San Jose, California, USA" or "Paris, France")'
     )
     parser.add_argument(
-        '--output', type=str, default='sanjose_poster.png',
-        help='Output filename (default: sanjose_poster.png)'
+        '--label', type=str, default=None,
+        help='City label for poster (default: extracted from city name)'
+    )
+    parser.add_argument(
+        '--region', type=str, default=None,
+        help='Region/state/country label for top of poster (default: extracted from city name)'
+    )
+    parser.add_argument(
+        '--radius', type=int, default=20,
+        help='Radius in kilometers from city center (default: 20)'
+    )
+    parser.add_argument(
+        '--output', type=str, default=None,
+        help='Output filename (default: <city>_poster.png)'
     )
     parser.add_argument(
         '--dpi', type=int, default=150,
@@ -226,24 +248,41 @@ def main():
 
     args = parser.parse_args()
 
+    # Parse city name for labels
+    parts = [p.strip() for p in args.city.split(',')]
+    city_label = args.label or parts[0]
+    region_label = args.region or (parts[1] if len(parts) > 1 else '')
+
+    # Default output filename
+    if args.output is None:
+        safe_name = city_label.lower().replace(' ', '_').replace("'", '')
+        args.output = f"{safe_name}_poster.png"
+
     print(f"\n{'='*50}")
-    print("  SAN JOSE MAP POSTER GENERATOR")
+    print("  MAP POSTER GENERATOR")
     print("  Tech Minimalist Theme")
     print(f"{'='*50}\n")
 
+    # Geocode
+    coords = geocode_city(args.city)
+
     # Fetch data
-    G, water, parks = fetch_map_data(SAN_JOSE, args.radius)
+    G, water, parks = fetch_map_data(coords, args.radius)
 
     # Render
     render_poster(
         G, water, parks,
         output_path=args.output,
         dpi=args.dpi,
+        city_name=city_label,
+        state_or_country=region_label,
+        coords=coords,
         show_labels=not args.no_labels
     )
 
     print(f"\nPoster specifications:")
-    print(f"  - Center: {SAN_JOSE[0]}, {SAN_JOSE[1]}")
+    print(f"  - City: {city_label}")
+    print(f"  - Center: {coords[0]:.4f}, {coords[1]:.4f}")
     print(f"  - Radius: {args.radius} km")
     print(f"  - Resolution: {args.dpi} DPI")
     print(f"  - Theme: Tech Minimalist (dark + cyan)")
